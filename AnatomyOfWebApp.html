@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: Anatomy of Lexica Draft Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- 
+        Palette Used: Energetic & Playful
+        Vibrant color palette selected for a professional and stylish tech theme.
+        This infographic was generated without using SVG or Mermaid JS. 
+    -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#118AB2',    // Blue
+                        'secondary': '#073B4C',  // Dark Blue/Text
+                        'accent-1': '#FF6B6B',  // Red
+                        'accent-2': '#FFD166',  // Yellow
+                        'accent-3': '#06D6A0',  // Green
+                        'light-bg': '#F7F9FB',
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light-bg text-secondary font-sans antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <!-- Header -->
+        <header class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-secondary mb-2">Anatomy of a Single-File Web App</h1>
+            <p class="text-lg text-primary font-semibold">A Visual Deep-Dive into the Architecture of Lexica Draft Pro</p>
+        </header>
+
+        <!-- Core Philosophy Section -->
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-secondary">Core Philosophy</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <p class="text-8xl font-bold text-accent-1">1</p>
+                    <p class="text-2xl font-semibold text-secondary mt-2">Single HTML File</p>
+                    <p class="mt-4 text-gray-600">The entire application is self-contained. This maximizes portability and simplifies deployment, requiring no build tools or complex server setup.</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <p class="text-8xl font-bold text-accent-1">0</p>
+                    <p class="text-2xl font-semibold text-secondary mt-2">Server Dependencies</p>
+                    <p class="mt-4 text-gray-600">All data, including user profiles and drafts, is stored client-side in the browser's `localStorage`, ensuring user privacy and a fast, offline-capable experience.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technology Stack Section -->
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-secondary">Technology Stack</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center aspect-square">
+                    <p class="text-4xl">📄</p>
+                    <p class="font-bold mt-2">HTML5</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center aspect-square">
+                     <p class="text-4xl">🎨</p>
+                    <p class="font-bold mt-2">Tailwind CSS</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center aspect-square">
+                     <p class="text-4xl">⚙️</p>
+                    <p class="font-bold mt-2">JavaScript</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center aspect-square">
+                     <p class="text-4xl">📊</p>
+                    <p class="font-bold mt-2">Chart.js</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center aspect-square">
+                     <p class="text-4xl">↔️</p>
+                    <p class="font-bold mt-2">SortableJS</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center aspect-square">
+                     <p class="text-4xl">💾</p>
+                    <p class="font-bold mt-2">FileSaver.js</p>
+                </div>
+            </div>
+             <p class="text-center mt-6 text-gray-600">A lean, effective stack using CDN-hosted libraries for maximum portability and zero build-time configuration.</p>
+        </section>
+
+        <!-- Application Flow Section -->
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-10 text-secondary">Application Initialization Flow</h2>
+            <div class="relative flex flex-col items-center">
+                <div class="w-full max-w-md">
+                    <div class="bg-white p-4 rounded-lg shadow-lg text-center border-t-4 border-accent-3">
+                        <p class="font-bold">1. DOMContentLoaded</p>
+                        <p class="text-sm text-gray-600">The browser finishes loading the HTML file.</p>
+                    </div>
+                    <div class="h-12 w-1 bg-primary mx-auto"></div>
+                    <div class="bg-white p-4 rounded-lg shadow-lg text-center border-t-4 border-accent-3">
+                        <p class="font-bold">2. init()</p>
+                        <p class="text-sm text-gray-600">The main script function is called.</p>
+                    </div>
+                     <div class="h-12 w-1 bg-primary mx-auto"></div>
+                    <div class="bg-white p-4 rounded-lg shadow-lg text-center border-t-4 border-accent-3">
+                        <p class="font-bold">3. loadState()</p>
+                        <p class="text-sm text-gray-600">Drafts and user profile are loaded from `localStorage` into the `state` object.</p>
+                    </div>
+                     <div class="h-12 w-1 bg-primary mx-auto"></div>
+                    <div class="bg-white p-4 rounded-lg shadow-lg text-center border-t-4 border-accent-3">
+                        <p class="font-bold">4. Render & Populate</p>
+                        <p class="text-sm text-gray-600">Functions like `renderTemplateSelector` and `updateUIWithProfileData` build the UI from data.</p>
+                    </div>
+                     <div class="h-12 w-1 bg-primary mx-auto"></div>
+                    <div class="bg-accent-2 p-4 rounded-lg shadow-lg text-center border-t-4 border-secondary">
+                        <p class="font-bold">5. App Ready</p>
+                        <p class="text-sm text-secondary">The dashboard is displayed, and the application is idle, awaiting user input.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Engine Section -->
+        <section class="mb-20">
+             <h2 class="text-3xl font-bold text-center mb-10 text-secondary">The Data Engine</h2>
+             <div class="bg-white rounded-lg shadow-lg p-8">
+                 <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                    <!-- Templates DB -->
+                    <div class="border-2 border-dashed border-gray-300 p-4 rounded-lg text-center">
+                        <p class="font-bold text-primary text-lg">templatesDB</p>
+                        <p class="text-sm text-gray-500 mb-2">Defines contract recipes</p>
+                        <div class="bg-gray-100 p-2 rounded inline-block">
+                            <code class="text-sm">defaultClauses: ['id1', 'id2']</code>
+                        </div>
+                    </div>
+                    <!-- Arrow -->
+                    <div class="text-4xl text-accent-1 font-bold">→</div>
+                    <!-- Clauses DB -->
+                    <div class="border-2 border-dashed border-gray-300 p-4 rounded-lg text-center">
+                        <p class="font-bold text-primary text-lg">clausesDB</p>
+                        <p class="text-sm text-gray-500 mb-2">Contains dynamic clause content</p>
+                        <div class="bg-gray-100 p-2 rounded inline-block">
+                             <code class="text-sm">'id1': &#123; text: (data) => `...` &#125;</code>
+                        </div>
+                    </div>
+                 </div>
+                 <p class="text-center mt-8 text-gray-600">Templates provide a list of clause IDs, which are used as keys to look up the corresponding dynamic text functions in the `clausesDB`. This modular system allows any contract to be built from a universal set of clauses.</p>
+             </div>
+        </section>
+        
+        <!-- Key Features Complexity Section -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold text-center mb-10 text-secondary">Key Feature Complexity</h2>
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <p class="text-center text-gray-600 mb-6">A look at the relative implementation complexity of the core user-facing features, illustrating where development effort is concentrated.</p>
+                <div class="chart-container">
+                    <canvas id="featureComplexityChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center mt-20 pt-8 border-t border-gray-300">
+             <p class="font-bold text-lg text-secondary">Future Roadmap</p>
+             <p class="text-gray-600">The current architecture provides a solid foundation for a single-user tool. The next evolution involves migrating from `localStorage` to a real-time database like Firebase Firestore to enable multi-user collaboration, commenting, and version history.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Tooltip Configuration for all charts
+            const tooltipTitleCallback = {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) {
+                                  return label.join(' ');
+                                } else {
+                                  return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Feature Complexity Chart
+            const featureCtx = document.getElementById('featureComplexityChart').getContext('2d');
+            const featureComplexityData = {
+                labels: [
+                    ['Dynamic', 'Multi-Party System'],
+                    ['Drag & Drop', 'Reordering'],
+                    ['Formatted DOCX', 'Export']
+                ],
+                datasets: [{
+                    label: 'Relative Complexity Score',
+                    data: [4, 6, 9],
+                    backgroundColor: [
+                        '#06D6A0', // Green
+                        '#FFD166', // Yellow
+                        '#FF6B6B', // Red
+                    ],
+                    borderColor: [
+                        '#06D6A0',
+                        '#FFD166',
+                        '#FF6B6B',
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            new Chart(featureCtx, {
+                type: 'bar',
+                data: featureComplexityData,
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Complexity (1-10 Scale)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...tooltipTitleCallback.plugins,
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
