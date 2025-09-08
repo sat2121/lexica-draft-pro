@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexica Draft Pro - Modular Contract Builder</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Feather Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    
+    <!-- Libraries for DOCX Download & Drag/Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#2B3A67', // Deep Blue
+                        'accent': '#46C9C3',  // Teal
+                        'background': '#F5F7FA',
+                        'surface': '#FFFFFF',
+                        'text-primary': '#1E293B',
+                        'danger': '#e53e3e',
+                        'ai-purple': '#8B5CF6',
+                    },
+                    fontFamily: { 'sans': ['Poppins', 'sans-serif'], },
+                    keyframes: { 'pulse-glow': { '0%, 100%': { boxShadow: '0 0 0 0 rgba(139, 92, 246, 0.7)' }, '50%': { boxShadow: '0 0 10px 5px rgba(139, 92, 246, 0)' }, } },
+                    animation: { 'pulse-glow': 'pulse-glow 2s infinite', }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .clause-block { border: 1px solid #e2e8f0; border-radius: 0.5rem; background-color: white; transition: box-shadow 0.2s; position: relative; }
+        .clause-header { background-color: #f8fafc; padding: 0.5rem 1rem; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .clause-content { padding: 1rem; }
+        .prose { max-width: none; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 2rem; border-radius: 0.5rem; width: 90%; max-width: 600px; }
+        .custom-checkbox:checked { background-color: #2B3A67; border-color: #2B3A67; }
+        .custom-checkbox:checked::after { content: '✔'; color: white; font-size: 12px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .clause-inserter { opacity: 0; transition: opacity 0.2s ease-in-out; text-align: center; margin: -0.5rem 0; padding: 0.5rem 0; }
+        #contract-editor-container:hover .clause-inserter, .clause-inserter:hover { opacity: 1; }
+        .clause-inserter button { background-color: rgba(43, 58, 103, 0.1); border: 1px dashed #2B3A67; color: #2B3A67; width: 100%; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; }
+        .clause-inserter button:hover { background-color: rgba(43, 58, 103, 0.2); }
+        .drag-handle { cursor: grab; }
+        .sortable-ghost { opacity: 0.4; background: #c8ebfb; }
+        .sortable-chosen { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="bg-background text-text-primary antialiased">
+
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-primary text-white shadow-md sticky top-0 z-50">
+            <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <div id="home-btn" class="text-2xl font-bold flex items-center cursor-pointer">
+                    <i data-feather="file-text" class="mr-2"></i>Lexica Draft
+                </div>
+                <div class="flex items-center">
+                    <span id="header-user-name" class="mr-4 hidden sm:block">Guest</span>
+                    <button id="profile-btn" class="cursor-pointer">
+                         <img src="https://placehold.co/40x40/46C9C3/FFFFFF?text=G" alt="User Avatar" id="header-avatar" class="rounded-full border-2 border-accent">
+                    </button>
+                </div>
+            </nav>
+        </header>
+
+        <main class="container mx-auto px-6 py-8">
+
+            <!-- PAGE 1: Dashboard -->
+            <div id="dashboard-page">
+                 <h1 class="text-3xl font-bold mb-2">Welcome back, <span id="dashboard-user-name">Guest</span>!</h1>
+                <p class="text-gray-600 mb-8">Ready to build your next contract?</p>
+                <div class="text-center mb-12">
+                    <button id="go-to-templates-btn" class="bg-accent text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:bg-teal-500 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50">
+                        <i data-feather="plus-circle" class="inline-block mr-2 -mt-1"></i>Create New Contract
+                    </button>
+                </div>
+                 <div>
+                    <h2 class="text-2xl font-bold mb-4">Recent Drafts</h2>
+                    <div id="recent-drafts-container" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: Template Selection -->
+            <div id="template-page" class="hidden">
+                 <button id="back-to-dashboard-btn" class="flex items-center text-gray-600 hover:text-primary font-semibold mb-6">
+                    <i data-feather="arrow-left" class="mr-2"></i> Back to Dashboard
+                </button>
+                <h1 class="text-3xl font-bold mb-8">Select a Starting Template</h1>
+                <div id="template-categories-container" class="space-y-10"></div>
+            </div>
+            
+            <!-- PAGE 3: Interactive Clause Selection Wizard -->
+            <div id="wizard-page" class="hidden">
+                 <button class="back-to-templates-btn flex items-center text-gray-600 hover:text-primary font-semibold mb-6">
+                    <i data-feather="arrow-left" class="mr-2"></i> Back to Templates
+                </button>
+                <h1 class="text-3xl font-bold mb-1" id="wizard-title">Drafting...</h1>
+                <p class="text-gray-500 mb-8">Fill in the primary details and select the clauses for your draft.</p>
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Left Panel: Form -->
+                    <div class="w-full lg:w-2/5 bg-surface p-6 rounded-lg shadow-md max-h-[70vh] overflow-y-auto">
+                        <form id="wizard-form" class="space-y-4">
+                            <div id="parties-container" class="space-y-4">
+                                <!-- Dynamic party fields will be injected here -->
+                            </div>
+                            <button type="button" id="add-party-btn" class="w-full text-sm text-primary font-semibold p-2 border border-dashed rounded-lg hover:bg-gray-100 flex items-center justify-center">
+                                <i data-feather="plus" class="h-4 w-4 mr-2"></i>Add Another Party
+                            </button>
+                             <hr class="my-4">
+                             <div>
+                                <label for="effective-date" class="block font-semibold mb-1 text-sm">Effective Date</label>
+                                <input type="date" id="effective-date" class="w-full border rounded-lg p-2 text-sm">
+                            </div>
+                            <div>
+                                <label for="jurisdiction" class="block font-semibold mb-1 text-sm">Governing Law & Jurisdiction</label>
+                                <input type="text" id="jurisdiction" class="w-full border rounded-lg p-2 text-sm" placeholder="e.g., Delhi, India">
+                            </div>
+                        </form>
+                         <div class="text-right mt-8">
+                            <button id="finish-draft-btn" class="bg-accent text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-500 transition-colors">
+                                Generate Draft & Go to Editor <i data-feather="arrow-right" class="inline-block ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Right Panel: Interactive Clause Checklist -->
+                    <div class="w-full lg:w-3/5">
+                        <div class="bg-gray-100 p-6 rounded-lg shadow-inner">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-lg">Select Clauses to Include:</h3>
+                                <div>
+                                    <button id="select-all-clauses" class="text-sm font-semibold text-primary hover:underline">Select All</button> |
+                                    <button id="deselect-all-clauses" class="text-sm font-semibold text-primary hover:underline">Deselect All</button>
+                                </div>
+                            </div>
+                            <div id="interactive-clauses-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 4: Editor & Finalization -->
+            <div id="editor-page" class="hidden">
+                 <button class="back-to-dashboard-btn-from-editor flex items-center text-gray-600 hover:text-primary font-semibold mb-6">
+                    <i data-feather="arrow-left" class="mr-2"></i> Back to Dashboard
+                </button>
+                 <h1 id="editor-filename" class="text-3xl font-bold mb-8"></h1>
+                 <div class="flex flex-col lg:flex-row gap-8">
+                    <div id="contract-editor-container" contenteditable="false" class="w-full lg:w-2/3 bg-surface p-6 rounded-lg shadow-md h-[80vh] overflow-y-auto"></div>
+                    <div class="w-full lg:w-1/3">
+                       <div class="bg-primary text-white p-6 rounded-lg shadow-md sticky top-24">
+                            <h3 class="text-xl font-bold mb-4">Tools</h3>
+                            <div class="space-y-4">
+                                <button id="save-draft-btn" class="w-full bg-accent text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-500 flex items-center justify-center">
+                                    <i data-feather="save" class="mr-2"></i>Save Draft
+                                </button>
+                                <div id="save-success-msg" class="text-center text-accent font-semibold hidden">Draft saved!</div>
+                                <button id="copy-btn" class="w-full bg-surface text-primary font-bold py-3 px-4 rounded-lg hover:bg-gray-200 flex items-center justify-center">
+                                    <i data-feather="copy" class="mr-2"></i>Copy Plain Text
+                                </button>
+                                 <button id="download-btn" class="w-full bg-surface text-primary font-bold py-3 px-4 rounded-lg hover:bg-gray-200 flex items-center justify-center">
+                                    <i data-feather="download" class="mr-2"></i>Download as .docx
+                                </button>
+                                <div id="copy-success-msg" class="text-center text-green-400 font-semibold hidden">Copied!</div>
+                            </div>
+                       </div>
+                       <div id="clause-library" class="bg-surface p-6 rounded-lg shadow-md mt-8">
+                           <h3 class="text-xl font-bold mb-4">Add Clause from Library</h3>
+                           <input type="text" id="clause-search" placeholder="Search library..." class="w-full border rounded-lg p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-primary">
+                           <div id="clause-library-container" class="space-y-4 max-h-[40vh] overflow-y-auto"></div>
+                       </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 5: User Profile -->
+            <div id="profile-page" class="hidden">
+                 <button id="back-to-dashboard-from-profile-btn" class="flex items-center text-gray-600 hover:text-primary font-semibold mb-6">
+                    <i data-feather="arrow-left" class="mr-2"></i> Back to Dashboard
+                </button>
+                <h1 class="text-3xl font-bold mb-8">Your Profile</h1>
+                <div class="max-w-2xl mx-auto bg-surface p-8 rounded-lg shadow-md">
+                    <form id="profile-form" class="space-y-6">
+                        <div><label for="profile-name" class="block font-semibold mb-1">Full Name</label><input type="text" id="profile-name" class="w-full border rounded-lg p-2" placeholder="e.g., Ananya Sharma"></div>
+                        <div><label for="profile-company" class="block font-semibold mb-1">Company Name</label><input type="text" id="profile-company" class="w-full border rounded-lg p-2" placeholder="e.g., Innovate Solutions"></div>
+                        <div><label for="profile-address" class="block font-semibold mb-1">Company Address</label><input type="text" id="profile-address" class="w-full border rounded-lg p-2" placeholder="e.g., 123 Tech Park, Delhi"></div>
+                        <div><label for="profile-jurisdiction" class="block font-semibold mb-1">Default Jurisdiction</label><input type="text" id="profile-jurisdiction" class="w-full border rounded-lg p-2" placeholder="e.g., Delhi, India"></div>
+                        <div class="text-right pt-4"><button type="submit" class="bg-accent text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-500">Save Profile</button></div>
+                        <div id="profile-save-msg" class="text-center text-green-600 font-semibold hidden pt-2">Profile saved!</div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- AI Assistant Modal -->
+    <div id="ai-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-primary flex items-center"><i data-feather="cpu" class="mr-2 text-ai-purple"></i>AI Clause Assistant</h2>
+                <button id="ai-modal-close-btn" class="text-gray-500 hover:text-danger"><i data-feather="x"></i></button>
+            </div>
+            <div id="ai-modal-body"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- DATA LIBRARIES ---
+        const clausesDB = {
+            partiesRecitals: { id: 'partiesRecitals', category: 'General', title: 'Parties & Recitals', text: (data) => {
+                const partyEntries = (data.parties || []).map(party => `
+                    <tr>
+                        <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                            <strong>${party.name || '[Party Name]'}</strong><br>
+                            of ${party.address ? party.address.replace(/\n/g, '<br>') : '[Party Address]'}
+                        </td>
+                        <td style="width: 50%; vertical-align: top; text-align: right;">
+                            (the "${party.role || 'Party'}")
+                        </td>
+                    </tr>
+                    <tr><td colspan="2" style="padding-top: 1em;"></td></tr>`
+                ).join('');
+
+                return `
+                    <p>This Agreement is entered into as of <strong>${data.effectiveDate || '[Effective Date]'}</strong> (the "Effective Date").</p>
+                    <p style="margin-top: 1em; margin-bottom: 1em;"><strong>BETWEEN:</strong></p>
+                    <table style="width: 100%; border-collapse: collapse; border: none;">
+                        <tbody>${partyEntries}</tbody>
+                    </table>`;
+            }},
+            definitions: { id: 'definitions', category: 'General', title: 'Definitions & Interpretations', text: (data) => `<p>In this Agreement, capitalized terms shall have the meanings set forth in this section.</p><p>"Confidential Information" means all non-public, proprietary or confidential information of a party.</p>` },
+            term: { id: 'term', category: 'General', title: 'Term & Duration', text: (data) => `<p>This Agreement shall commence on the Effective Date and continue for a period of one (1) year, unless terminated earlier as provided herein.</p>` },
+            scopeOfWork: { id: 'scopeOfWork', category: 'General', title: 'Scope of Work/Services', text: (data) => `<p>The scope of work is described in Schedule A.</p>` },
+            payment: { id: 'payment', category: 'General', title: 'Consideration/Payment Terms', text: (data) => `<p>Payment terms are set forth in Schedule B.</p>` },
+            deliverables: { id: 'deliverables', category: 'General', title: 'Deliverables & Milestones', text: (data) => `<p>Deliverables and milestones are specified in Schedule C.</p>` },
+            indemnity: { id: 'indemnity', category: 'Risk & Liability', title: 'Indemnity', text: (data) => `<p>Each Party shall indemnify the other from claims arising from its breach.</p>` },
+            limitationOfLiability: { id: 'limitationOfLiability', category: 'Risk & Liability', title: 'Limitation of Liability', text: (data) => `<p>Liability is limited to fees paid in the prior 12 months.</p>` },
+            warranties: { id: 'warranties', category: 'Risk & Liability', title: 'Warranties & Representations', text: (data) => `<p>Each Party warrants it has authority to enter this Agreement.</p>` },
+            forceMajeure: { id: 'forceMajeure', category: 'Risk & Liability', title: 'Force Majeure', text: (data) => `<p>No liability for delays due to events beyond reasonable control.</p>` },
+            insurance: { id: 'insurance', category: 'Risk & Liability', title: 'Insurance', text: (data) => `<p>Each Party shall maintain adequate insurance coverage.</p>` },
+            liquidatedDamages: { id: 'liquidatedDamages', category: 'Risk & Liability', title: 'Liquidated Damages', text: (data) => `<p>Liquidated damages for delays are set at [Amount] per day.</p>` },
+            termination: { id: 'termination', category: 'Termination & Dispute', title: 'Termination', text: (data) => `<p>Termination is possible for cause with 30 days' notice, or for convenience with 60 days' notice.</p>` },
+            noticePeriods: { id: 'noticePeriods', category: 'Termination & Dispute', title: 'Notice Periods', text: (data) => `<p>All notices must be in writing as per the Notices clause.</p>` },
+            consequencesOfTermination: { id: 'consequencesOfTermination', category: 'Termination & Dispute', title: 'Consequences of Termination', text: (data) => `<p>Upon termination, work ceases and final payments are made.</p>` },
+            disputeResolution: { id: 'disputeResolution', category: 'Termination & Dispute', title: 'Dispute Resolution', text: (data) => `<p>Disputes shall be settled by binding arbitration in ${data.jurisdiction || '[Jurisdiction]'}.</p>` },
+            governingLaw: { id: 'governingLaw', category: 'Termination & Dispute', title: 'Governing Law & Jurisdiction', text: (data) => `<p>This Agreement is governed by the laws of ${data.jurisdiction || '[Jurisdiction]'}.</p>` },
+            confidentiality: { id: 'confidentiality', category: 'Confidentiality & IP', title: 'Confidentiality', text: (data) => `<p>Confidential information must not be disclosed for 3 years.</p>` },
+            nonCompeteSolicit: { id: 'nonCompeteSolicit', category: 'Confidentiality & IP', title: 'Non-Compete / Non-Solicit', text: (data) => `<p>Non-competition and non-solicitation obligations apply for 1 year post-term.</p>` },
+            ipOwnership: { id: 'ipOwnership', category: 'Confidentiality & IP', title: 'IP Ownership', text: (data) => `<p>Work product IP is owned by the hiring party.</p>` },
+            licensingOfIp: { id: 'licensingOfIp', category: 'Confidentiality & IP', title: 'Licensing of IP', text: (data) => `<p>A limited license is granted for performing services.</p>` },
+            returnOfInfo: { id: 'returnOfInfo', category: 'Confidentiality & IP', title: 'Return of Confidential Info', text: (data) => `<p>Information must be returned or destroyed upon termination.</p>` },
+            subcontracting: { id: 'subcontracting', category: 'Operational', title: 'Subcontracting / Assignment', text: (data) => `<p>No assignment or subcontracting without written consent.</p>` },
+            auditRights: { id: 'auditRights', category: 'Operational', title: 'Audit Rights', text: (data) => `<p>Audit rights are granted upon reasonable notice.</p>` },
+            complianceWithLaws: { id: 'complianceWithLaws', category: 'Operational', title: 'Compliance with Laws', text: (data) => `<p>All applicable laws must be complied with.</p>` },
+            regulatoryApprovals: { id: 'regulatoryApprovals', category: 'Operational', title: 'Regulatory Approvals', text: (data) => `<p>Each Party is responsible for its own regulatory approvals.</p>` },
+            hse: { id: 'hse', category: 'Operational', title: 'HSE', text: (data) => `<p>Compliance with all HSE regulations is required.</p>` },
+            entireAgreement: { id: 'entireAgreement', category: 'Boilerplate', title: 'Entire Agreement', text: (data) => `<p>This is the entire agreement between the parties.</p>` },
+            severability: { id: 'severability', category: 'Boilerplate', title: 'Severability', text: (data) => `<p>Unenforceable provisions do not invalidate the remainder.</p>` },
+            waiver: { id: 'waiver', category: 'Boilerplate', title: 'Waiver', text: (data) => `<p>Failure to enforce a provision is not a waiver.</p>` },
+            amendments: { id: 'amendments', category: 'Boilerplate', title: 'Amendments', text: (data) => `<p>Amendments must be in writing and signed.</p>` },
+            notices: { id: 'notices', category: 'Boilerplate', title: 'Notices', text: (data) => `<p>Notices must be in writing to the specified addresses.</p>` },
+            counterparts: { id: 'counterparts', category: 'Boilerplate', title: 'Counterparts', text: (data) => `<p>This agreement may be executed in counterparts.</p>` },
+            survival: { id: 'survival', category: 'Boilerplate', title: 'Survival', text: (data) => `<p>Certain clauses survive termination.</p>` },
+            probation: { id: 'probation', category: 'Contract-Specific', title: 'Probation Period', text: (data) => `<p>A probationary period of 3 months applies.</p>` },
+            tagAlong: { id: 'tagAlong', category: 'Contract-Specific', title: 'Tag-along/Drag-along', text: (data) => `<p>Tag-along and drag-along rights apply.</p>` },
+            rentEscalation: { id: 'rentEscalation', category: 'Contract-Specific', title: 'Rent Escalation', text: (data) => `<p>Rent escalates annually by [Percentage]%.</p>` },
+            sla: { id: 'sla', category: 'Contract-Specific', title: 'SLA', text: (data) => `<p>A service uptime of 99.9% is guaranteed.</p>` },
+        };
+        const templatesDB = {
+            nda: { category: "Commercial", title: "Non-Disclosure Agreement (NDA)", description: "Protect confidential information.", defaultClauses: ['partiesRecitals', 'definitions', 'confidentiality', 'term', 'returnOfInfo', 'governingLaw', 'disputeResolution'] },
+            serviceAgreement: { category: "Commercial", title: "Service Agreement", description: "Engage a provider for services.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'term', 'ipOwnership', 'confidentiality', 'limitationOfLiability', 'termination', 'indemnity', 'governingLaw'] },
+            consultancyAgreement: { category: "Commercial", title: "Consultancy Agreement", description: "Engage an independent consultant.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'term', 'confidentiality', 'warranties', 'indemnity', 'governingLaw'] },
+            supplyAgreement: { category: "Commercial", title: "Supply Agreement", description: "Terms for the supply of goods.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'deliverables', 'liquidatedDamages', 'warranties', 'forceMajeure', 'governingLaw'] },
+            distributionAgreement: { category: "Commercial", title: "Distribution Agreement", description: "Appoint a distributor for products.", defaultClauses: ['partiesRecitals', 'licensingOfIp', 'term', 'payment', 'ipOwnership', 'confidentiality', 'termination', 'governingLaw'] },
+            franchiseAgreement: { category: "Commercial", title: "Franchise Agreement", description: "Grant rights to operate a business.", defaultClauses: ['partiesRecitals', 'licensingOfIp', 'term', 'payment', 'confidentiality', 'termination', 'auditRights', 'governingLaw'] },
+            outsourcingAgreement: { category: "Commercial", title: "Outsourcing Agreement", description: "Contract a third party for operations.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'sla', 'confidentiality', 'term', 'governingLaw'] },
+            agencyAgreement: { category: "Commercial", title: "Agency Agreement", description: "Appoint an agent to represent a principal.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'term', 'termination', 'indemnity', 'governingLaw'] },
+            jointVentureAgreement: { category: "Commercial", title: "Joint Venture Agreement", description: "Establish a business arrangement.", defaultClauses: ['partiesRecitals', 'definitions', 'scopeOfWork', 'payment', 'ipOwnership', 'termination', 'disputeResolution', 'governingLaw'] },
+            partnershipAgreement: { category: "Commercial", title: "Partnership Agreement", description: "Define rights of business partners.", defaultClauses: ['partiesRecitals', 'definitions', 'payment', 'termination', 'disputeResolution', 'governingLaw'] },
+            employmentAgreement: { category: "Employment & HR", title: "Employment Agreement", description: "Hire a new employee.", defaultClauses: ['partiesRecitals', 'probation', 'scopeOfWork', 'payment', 'confidentiality', 'ipOwnership', 'termination', 'nonCompeteSolicit', 'governingLaw'] },
+            independentContractor: { category: "Employment & HR", title: "Independent Contractor Agreement", description: "Engage a self-employed individual.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'term', 'ipOwnership', 'confidentiality', 'indemnity', 'notices', 'governingLaw'] },
+            internshipAgreement: { category: "Employment & HR", title: "Internship Agreement", description: "Outline the terms of an internship.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'term', 'confidentiality', 'payment', 'governingLaw'] },
+            severanceAgreement: { category: "Employment & HR", title: "Severance/Termination Agreement", description: "Formalize an employee's departure.", defaultClauses: ['partiesRecitals', 'payment', 'confidentiality', 'returnOfInfo', 'waiver', 'entireAgreement', 'governingLaw'] },
+            nonCompeteAgreement: { category: "Employment & HR", title: "Non-Compete Agreement", description: "Restrict post-employment competition.", defaultClauses: ['partiesRecitals', 'nonCompeteSolicit', 'term', 'confidentiality', 'disputeResolution', 'governingLaw'] },
+            employeeConfidentiality: { category: "Employment & HR", title: "Confidentiality Agreement (Employee)", description: "Protect company secrets.", defaultClauses: ['partiesRecitals', 'definitions', 'confidentiality', 'returnOfInfo', 'survival', 'governingLaw'] },
+            shareholdersAgreement: { category: "Corporate/Investment", title: "Shareholders’ Agreement", description: "Define rights among shareholders.", defaultClauses: ['partiesRecitals', 'definitions', 'tagAlong', 'disputeResolution', 'governingLaw', 'notices'] },
+            shareSubscription: { category: "Corporate/Investment", title: "Share Subscription Agreement", description: "Terms for subscribing to new shares.", defaultClauses: ['partiesRecitals', 'payment', 'warranties', 'governingLaw'] },
+            sharePurchase: { category: "Corporate/Investment", title: "Share Purchase Agreement", description: "Terms for the sale of existing shares.", defaultClauses: ['partiesRecitals', 'payment', 'warranties', 'indemnity', 'confidentiality', 'governingLaw'] },
+            convertibleNote: { category: "Corporate/Investment", title: "Convertible Note / SAFE", description: "Short-term debt that converts to equity.", defaultClauses: ['partiesRecitals', 'payment', 'term', 'termination', 'governingLaw'] },
+            loanAgreementCorp: { category: "Corporate/Investment", title: "Loan Agreement / Debt Instrument", description: "Formal loan between corporate entities.", defaultClauses: ['partiesRecitals', 'payment', 'term', 'warranties', 'governingLaw'] },
+            investmentAgreement: { category: "Corporate/Investment", title: "Investment Agreement (VC/PE)", description: "Terms for a venture capital investment.", defaultClauses: ['partiesRecitals', 'definitions', 'payment', 'warranties', 'tagAlong', 'confidentiality', 'governingLaw'] },
+            mergerAgreement: { category: "Corporate/Investment", title: "Merger/Acquisition Agreement", description: "Govern the terms of a merger.", defaultClauses: ['partiesRecitals', 'definitions', 'payment', 'warranties', 'termination', 'indemnity', 'governingLaw'] },
+            leaseAgreement: { category: "Real Estate & Property", title: "Lease Agreement", description: "Lease a commercial or residential property.", defaultClauses: ['partiesRecitals', 'rentEscalation', 'term', 'termination', 'notices', 'governingLaw'] },
+            licenseProperty: { category: "Real Estate & Property", title: "License Agreement (Use of Property)", description: "Grant a license for property use.", defaultClauses: ['partiesRecitals', 'licensingOfIp', 'payment', 'term', 'governingLaw'] },
+            saleDeed: { category: "Real Estate & Property", title: "Sale Deed / Agreement for Sale", description: "Terms for the sale of a property.", defaultClauses: ['partiesRecitals', 'payment', 'warranties', 'indemnity', 'disputeResolution', 'governingLaw'] },
+            mortgageLoan: { category: "Real Estate & Property", title: "Mortgage/Loan Agreement", description: "A loan secured by real property.", defaultClauses: ['partiesRecitals', 'payment', 'term', 'insurance', 'governingLaw'] },
+            developmentAgreement: { category: "Real Estate & Property", title: "Development Agreement", description: "Terms for land development.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'term', 'indemnity', 'hse', 'governingLaw'] },
+            tenancyAgreement: { category: "Real Estate & Property", title: "Tenancy Agreement", description: "Similar to a lease, often for residential.", defaultClauses: ['partiesRecitals', 'rentEscalation', 'term', 'termination', 'governingLaw'] },
+            softwareLicense: { category: "IP & IT", title: "Software Licensing Agreement", description: "Define terms for software use.", defaultClauses: ['partiesRecitals', 'licensingOfIp', 'payment', 'term', 'ipOwnership', 'limitationOfLiability', 'warranties', 'governingLaw'] },
+            eula: { category: "IP & IT", title: "End-User License Agreement (EULA)", description: "A non-negotiable software license.", defaultClauses: ['licensingOfIp', 'limitationOfLiability', 'termination', 'warranties', 'governingLaw'] },
+            techTransfer: { category: "IP & IT", title: "Technology Transfer Agreement", description: "Transfer of technology or IP.", defaultClauses: ['partiesRecitals', 'definitions', 'licensingOfIp', 'payment', 'confidentiality', 'governingLaw'] },
+            ipAssignment: { category: "IP & IT", title: "IP Assignment Agreement", description: "Assign ownership of IP rights.", defaultClauses: ['partiesRecitals', 'ipOwnership', 'warranties', 'payment', 'governingLaw'] },
+            contentLicense: { category: "IP & IT", title: "Content Licensing Agreement", description: "License for use of creative content.", defaultClauses: ['partiesRecitals', 'licensingOfIp', 'payment', 'term', 'limitationOfLiability', 'governingLaw'] },
+            saasAgreement: { category: "IP & IT", title: "SaaS Agreement", description: "Terms for Software-as-a-Service.", defaultClauses: ['partiesRecitals', 'licensingOfIp', 'payment', 'sla', 'confidentiality', 'limitationOfLiability', 'governingLaw'] },
+            termsOfService: { category: "IP & IT", title: "Website Terms of Service/Privacy Policy", description: "Rules for using a website.", defaultClauses: ['definitions', 'licensingOfIp', 'limitationOfLiability', 'termination', 'governingLaw', 'disputeResolution'] },
+            govtSupply: { category: "Government & Public", title: "Government Supply Agreement", description: "Supply of goods to a government entity.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'deliverables', 'auditRights', 'complianceWithLaws', 'governingLaw'] },
+            pppContract: { category: "Government & Public", title: "Public-Private Partnership (PPP) Contract", description: "Collaboration between public and private sectors.", defaultClauses: ['partiesRecitals', 'definitions', 'scopeOfWork', 'term', 'hse', 'regulatoryApprovals', 'forceMajeure', 'disputeResolution'] },
+            concessionAgreement: { category: "Government & Public", title: "Concession Agreement", description: "Grant of rights over a public asset.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'term', 'payment', 'regulatoryApprovals', 'termination', 'governingLaw'] },
+            tenderBid: { category: "Government & Public", title: "Tender/Bid Contracts", description: "Documents related to bidding processes.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'payment', 'warranties', 'confidentiality', 'complianceWithLaws'] },
+            insuranceContract: { category: "Specialized", title: "Insurance Contract", description: "An insurance policy agreement.", defaultClauses: ['partiesRecitals', 'definitions', 'insurance', 'term', 'payment', 'governingLaw'] },
+            bailmentPledge: { category: "Specialized", title: "Bailment / Pledge Agreement", description: "Transfer of possession of goods.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'term', 'limitationOfLiability', 'governingLaw'] },
+            trustDeed: { category: "Specialized", title: "Trust Deed", description: "Creation of a trust.", defaultClauses: ['partiesRecitals', 'definitions', 'scopeOfWork', 'term', 'governingLaw'] },
+            settlementAgreement: { category: "Specialized", title: "Settlement Agreement", description: "Resolve a dispute between parties.", defaultClauses: ['partiesRecitals', 'payment', 'confidentiality', 'waiver', 'entireAgreement', 'disputeResolution'] },
+            arbitrationAgreement: { category: "Specialized", title: "Arbitration Agreement", description: "An agreement to arbitrate disputes.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'disputeResolution', 'governingLaw', 'confidentiality'] },
+            powerOfAttorney: { category: "Specialized", title: "Power of Attorney", description: "Grant authority to act on another's behalf.", defaultClauses: ['partiesRecitals', 'scopeOfWork', 'term', 'governingLaw'] },
+            loanGuarantee: { category: "Specialized", title: "Loan/Guarantee Contract", description: "Formalize a loan and/or guarantee.", defaultClauses: ['partiesRecitals', 'payment', 'term', 'warranties', 'indemnity', 'governingLaw'] },
+        };
+        
+        try {
+            document.addEventListener('DOMContentLoaded', () => {
+                const state = { currentPage: 'dashboard-page', currentDraftId: null, formData: { parties: [] }, activeClauseIds: [], drafts: [], userProfile: { name: 'Guest', company: '', address: '', jurisdiction: 'Delhi, India', avatarLetter: 'G' }, sortableInstance: null };
+                const pages = document.querySelectorAll('#app > main > div');
+                const dom = {
+                    homeBtn: document.getElementById('home-btn'), profileBtn: document.getElementById('profile-btn'),
+                    goToTemplatesBtn: document.getElementById('go-to-templates-btn'), backToDashboardBtn: document.getElementById('back-to-dashboard-btn'),
+                    backToTemplatesBtns: document.querySelectorAll('.back-to-templates-btn'), backToDashboardFromEditorBtn: document.querySelector('.back-to-dashboard-btn-from-editor'),
+                    templateCategoriesContainer: document.getElementById('template-categories-container'), wizardTitle: document.getElementById('wizard-title'),
+                    interactiveClausesList: document.getElementById('interactive-clauses-list'), wizardForm: document.getElementById('wizard-form'),
+                    finishDraftBtn: document.getElementById('finish-draft-btn'), editorFilename: document.getElementById('editor-filename'),
+                    contractEditorContainer: document.getElementById('contract-editor-container'), copyBtn: document.getElementById('copy-btn'),
+                    downloadBtn: document.getElementById('download-btn'), copySuccessMsg: document.getElementById('copy-success-msg'),
+                    clauseLibraryContainer: document.getElementById('clause-library-container'), clauseSearch: document.getElementById('clause-search'),
+                    profileForm: document.getElementById('profile-form'), backToDashboardFromProfileBtn: document.getElementById('back-to-dashboard-from-profile-btn'),
+                    profileSaveMsg: document.getElementById('profile-save-msg'), recentDraftsContainer: document.getElementById('recent-drafts-container'),
+                    saveDraftBtn: document.getElementById('save-draft-btn'), saveSuccessMsg: document.getElementById('save-success-msg'),
+                    aiModal: document.getElementById('ai-modal'), aiModalBody: document.getElementById('ai-modal-body'), aiModalCloseBtn: document.getElementById('ai-modal-close-btn'),
+                    selectAllClausesBtn: document.getElementById('select-all-clauses'), deselectAllClausesBtn: document.getElementById('deselect-all-clauses'),
+                    partiesContainer: document.getElementById('parties-container'), addPartyBtn: document.getElementById('add-party-btn'),
+                };
+
+                function showPage(pageId) { pages.forEach(page => page.classList.toggle('hidden', page.id !== pageId)); state.currentPage = pageId; window.scrollTo(0, 0); feather.replace(); }
+                function saveState() { try { localStorage.setItem('lexicaDrafts', JSON.stringify(state.drafts)); localStorage.setItem('lexicaUserProfile', JSON.stringify(state.userProfile)); } catch(e) { console.error("Could not save state:", e); } }
+                function loadState() { try { const drafts = localStorage.getItem('lexicaDrafts'); const profile = localStorage.getItem('lexicaUserProfile'); if (drafts) state.drafts = JSON.parse(drafts) || []; if (profile) state.userProfile = JSON.parse(profile) || {}; } catch(e) { console.error("Error parsing local storage:", e); state.drafts = []; localStorage.removeItem('lexicaDrafts');} }
+                function renderRecentDrafts() { if (state.drafts.length === 0) { dom.recentDraftsContainer.innerHTML = `<div class="bg-surface rounded-lg shadow p-4 text-center text-gray-500">No recent drafts.</div>`; return; } dom.recentDraftsContainer.innerHTML = state.drafts.map(draft => `<div class="bg-surface rounded-lg shadow p-4 flex items-center justify-between border-l-4 border-primary hover:shadow-xl transition-shadow cursor-pointer draft-card" data-draft-id="${draft.id}"><div><h3 class="font-bold text-lg">${draft.title}</h3><p class="text-sm text-gray-500">Last saved: ${new Date(draft.lastSaved).toLocaleString()}</p></div><div class="flex items-center space-x-2"><button class="delete-draft-btn text-danger hover:text-red-700 p-2" data-draft-id="${draft.id}"><i data-feather="trash-2" class="h-5 w-5"></i></button><i data-feather="chevron-right" class="text-primary"></i></div></div>`).join(''); feather.replace(); }
+                
+                dom.saveDraftBtn.addEventListener('click', () => { 
+                    const draftIndex = state.drafts.findIndex(d => d.id === state.currentDraftId); 
+                    if (draftIndex === -1) return; 
+                    
+                    const updatedClausesContent = {}; 
+                    const currentClauseIds = Array.from(dom.contractEditorContainer.querySelectorAll('.clause-block')).map(b => {
+                        const clauseId = b.dataset.clauseId;
+                        if (clauseId.startsWith('custom_')) {
+                            updatedClausesContent[clauseId] = b.innerHTML; 
+                        } else {
+                            updatedClausesContent[clauseId] = b.querySelector('.clause-content').innerHTML; 
+                        }
+                        return clauseId;
+                    });
+                    
+                    state.drafts[draftIndex] = { ...state.drafts[draftIndex], formData: { ...state.formData }, activeClauseIds: currentClauseIds, clausesContent: updatedClausesContent, lastSaved: new Date().toISOString() }; 
+                    saveState(); 
+                    dom.saveSuccessMsg.classList.remove('hidden'); 
+                    setTimeout(() => dom.saveSuccessMsg.classList.add('hidden'), 2000); 
+                });
+                
+                dom.downloadBtn.addEventListener('click', () => {
+                    const tempDiv = document.createElement('div');
+                    let clauseCounter = 1;
+                    dom.contractEditorContainer.querySelectorAll('.clause-block').forEach(clauseBlock => {
+                        const clauseClone = clauseBlock.cloneNode(true);
+                        
+                        const titleElement = clauseClone.querySelector('h4');
+                        titleElement.outerHTML = `<p><strong>${clauseCounter}. ${titleElement.textContent}</strong></p>`;
+
+                        const contentDiv = clauseClone.querySelector('.clause-content');
+                        let newContent = '';
+                        let paraCounter = 1;
+                        
+                        contentDiv.childNodes.forEach(node => {
+                            if ((node.nodeName === 'P' || node.nodeName === 'LI') && node.textContent.trim() !== '') {
+                                newContent += `<table style="width:100%; border-collapse: collapse;"><tr><td style="width:40px; vertical-align:top; border:none;"><strong>${clauseCounter}.${paraCounter}</strong></td><td style="vertical-align:top; border:none;">${node.innerHTML}</td></tr></table>`;
+                                paraCounter++;
+                            } else if (node.nodeName === 'TABLE') {
+                                const tableClone = node.cloneNode(true);
+                                tableClone.querySelectorAll('td').forEach(td => { td.style.border = 'none'; });
+                                newContent += tableClone.outerHTML;
+                            } else if (node.textContent.trim() !== ''){
+                                newContent += node.outerHTML || node.textContent;
+                            }
+                        });
+                        contentDiv.innerHTML = newContent;
+                        
+                        clauseClone.querySelector('.clause-header').remove();
+                        tempDiv.appendChild(clauseClone);
+                        clauseCounter++;
+                    });
+
+                    const draftTitle = dom.editorFilename.textContent.replace('Editing: ', '');
+                    const filename = `${draftTitle}.docx`;
+                    const fullHtml = `<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body><h1>${draftTitle}</h1>${tempDiv.innerHTML}</body></html>`;
+                    const converted = htmlDocx.asBlob(fullHtml, {orientation: 'portrait', margins: {top: 720, left: 720, right: 720, bottom: 720}});
+                    saveAs(converted, filename);
+                });
+
+                function showAIModal() { dom.aiModal.classList.remove('hidden'); feather.replace(); } function hideAIModal() { dom.aiModal.classList.add('hidden'); }
+                async function fetchAISuggestion(title, text) { return new Promise(resolve => setTimeout(() => resolve([{ title: 'Simpler Language', text: `Simplified version of ${title}.` }, { title: 'Formal Tone', text: `Formal version of ${title}.` }]), 1000)); }
+                
+                const goBackToDashboard = () => { renderRecentDrafts(); showPage('dashboard-page'); };
+                dom.homeBtn.addEventListener('click', goBackToDashboard); dom.backToDashboardBtn.addEventListener('click', goBackToDashboard);
+                dom.backToDashboardFromProfileBtn.addEventListener('click', goBackToDashboard); dom.backToDashboardFromEditorBtn.addEventListener('click', goBackToDashboard);
+                dom.profileBtn.addEventListener('click', () => showPage('profile-page')); dom.goToTemplatesBtn.addEventListener('click', () => { resetWizard(); showPage('template-page'); });
+                dom.backToTemplatesBtns.forEach(btn => btn.addEventListener('click', () => { showPage('template-page'); }));
+
+                document.body.addEventListener('click', async (e) => {
+                    const draftCard = e.target.closest('.draft-card'); const deleteBtn = e.target.closest('.delete-draft-btn');
+                    const aiAssistBtn = e.target.closest('.ai-assist-btn'); const suggestionBtn = e.target.closest('.use-suggestion-btn');
+                    const inserterBtn = e.target.closest('.clause-inserter-btn');
+                    const removePartyBtn = e.target.closest('.remove-party-btn');
+
+                    if (removePartyBtn) {
+                        const index = parseInt(removePartyBtn.dataset.index);
+                        state.formData.parties.splice(index, 1);
+                        renderPartiesContainer();
+                    }
+                    else if (deleteBtn) { e.stopPropagation(); if (!confirm('Delete this draft?')) return; state.drafts = state.drafts.filter(d => d.id !== deleteBtn.dataset.draftId); saveState(); renderRecentDrafts(); }
+                    else if (draftCard) { const draft = state.drafts.find(d => d.id === draftCard.dataset.draftId); if (draft) { state.currentDraftId = draft.id; state.formData = draft.formData; state.activeClauseIds = draft.activeClauseIds || []; renderEditor(draft.clausesContent); renderClauseLibrary(); showPage('editor-page'); } }
+                    else if (aiAssistBtn) { const clauseBlock = aiAssistBtn.closest('.clause-block'); const clauseId = clauseBlock.dataset.clauseId; if(clauseId.startsWith('custom_')) return; const clause = clausesDB[clauseId]; const currentContent = clauseBlock.querySelector('.clause-content').innerHTML; showAIModal(); dom.aiModalBody.innerHTML = `<p class="animate-pulse">Generating suggestions...</p>`; const suggestions = await fetchAISuggestion(clause.title, currentContent); dom.aiModalBody.innerHTML = `<p class="mb-4">Original: <strong>${clause.title}</strong></p><div class="bg-gray-100 p-3 rounded mb-6 max-h-32 overflow-y-auto">${currentContent}</div><h3 class="font-bold mb-4">Suggestions:</h3><div class="space-y-4">${suggestions.map((s, i) => `<div class="border rounded p-3"><p class="font-semibold">${s.title}</p><div class="text-sm text-gray-700 my-2">${s.text}</div><button class="use-suggestion-btn text-sm bg-ai-purple text-white font-bold py-1 px-3 rounded hover:bg-purple-700" data-target-clause-id="${clauseId}" data-suggestion-index="${i}">Use</button></div>`).join('')}</div>`; window.currentAISuggestions = suggestions; }
+                    else if (suggestionBtn) { const clauseId = suggestionBtn.dataset.targetClauseId; const index = parseInt(suggestionBtn.dataset.suggestionIndex); const newText = window.currentAISuggestions[index].text; const clauseContentEl = dom.contractEditorContainer.querySelector(`.clause-block[data-clause-id="${clauseId}"] .clause-content`); if (clauseContentEl) clauseContentEl.innerHTML = newText; hideAIModal(); }
+                    else if (inserterBtn) {
+                        const inserterDiv = inserterBtn.parentElement;
+                        inserterDiv.insertAdjacentHTML('beforebegin', generateCustomClauseHTML());
+                        feather.replace();
+                        const newClauseEl = inserterDiv.previousElementSibling;
+                        newClauseEl.querySelector('h4').focus();
+                    }
+                });
+                dom.aiModalCloseBtn.addEventListener('click', hideAIModal);
+
+                function updateUIWithProfileData() { const { name, company, address, jurisdiction, avatarLetter } = state.userProfile; document.getElementById('header-user-name').textContent = name; document.getElementById('dashboard-user-name').textContent = name; document.getElementById('header-avatar').src = `https://placehold.co/40x40/46C9C3/FFFFFF?text=${avatarLetter || 'G'}`; document.getElementById('profile-name').value = name === 'Guest' ? '' : name; document.getElementById('profile-company').value = company; document.getElementById('profile-address').value = address; document.getElementById('profile-jurisdiction').value = jurisdiction; }
+                dom.profileForm.addEventListener('submit', (e) => { e.preventDefault(); const name = dom.profileForm.elements['profile-name'].value || 'Guest'; state.userProfile = { name, company: dom.profileForm.elements['profile-company'].value, address: dom.profileForm.elements['profile-address'].value, jurisdiction: dom.profileForm.elements['profile-jurisdiction'].value, avatarLetter: name.charAt(0).toUpperCase() || 'G' }; updateUIWithProfileData(); saveState(); dom.profileSaveMsg.classList.remove('hidden'); setTimeout(() => dom.profileSaveMsg.classList.add('hidden'), 2500); });
+                function renderTemplateSelector() { const categories = {}; Object.entries(templatesDB).forEach(([key, template]) => { template.key = key; if (!categories[template.category]) categories[template.category] = []; categories[template.category].push(template); }); dom.templateCategoriesContainer.innerHTML = Object.keys(categories).sort().map(cat => `<div><h2 class="text-2xl font-bold mb-4 border-b-2 border-primary pb-2">${cat}</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${categories[cat].map(t => `<div class="template-card bg-surface rounded-lg shadow p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col justify-between" data-template-key="${t.key}"><div><h3 class="text-xl font-bold mb-2 text-primary">${t.title}</h3><p class="text-gray-600 text-sm">${t.description}</p></div><div class="text-right mt-4"><i data-feather="arrow-right-circle" class="text-accent"></i></div></div>`).join('')}</div></div>`).join(''); feather.replace(); }
+                dom.templateCategoriesContainer.addEventListener('click', (e) => { const card = e.target.closest('.template-card'); if (!card) return; const templateKey = card.dataset.templateKey; state.currentTemplateKey = templateKey; const template = templatesDB[templateKey]; dom.wizardTitle.textContent = `Configure: ${template.title}`; renderInteractiveClauseList(template.defaultClauses); showPage('wizard-page'); });
+                function renderInteractiveClauseList(defaultIds = []) { const categories = {}; Object.entries(clausesDB).forEach(([key, clause]) => { clause.key = key; if (!categories[clause.category]) categories[clause.category] = []; categories[clause.category].push(clause); }); dom.interactiveClausesList.innerHTML = Object.keys(categories).sort().map(cat => `<div><h4 class="font-bold text-primary mb-2">${cat}</h4><div class="space-y-2">${categories[cat].map(c => `<label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" class="clause-checkbox h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary relative appearance-none custom-checkbox" data-clause-id="${c.key}" ${defaultIds.includes(c.key) ? 'checked' : ''}><span class="text-sm">${c.title}</span></label>`).join('')}</div></div>`).join(''); updateActiveClausesFromCheckboxes(); }
+                function updateActiveClausesFromCheckboxes() { state.activeClauseIds = Array.from(dom.interactiveClausesList.querySelectorAll('.clause-checkbox:checked')).map(cb => cb.dataset.clauseId); }
+                dom.interactiveClausesList.addEventListener('change', updateActiveClausesFromCheckboxes);
+                function toggleAllClauses(checked) { dom.interactiveClausesList.querySelectorAll('.clause-checkbox').forEach(cb => cb.checked = checked); updateActiveClausesFromCheckboxes(); }
+                dom.selectAllClausesBtn.addEventListener('click', () => toggleAllClauses(true)); dom.deselectAllClausesBtn.addEventListener('click', () => toggleAllClauses(false));
+                function resetWizard() {
+                    state.formData = { parties: [ { name: state.userProfile.company, address: state.userProfile.address, role: '' }, { name: '', address: '', role: '' } ], jurisdiction: state.userProfile.jurisdiction, effectiveDate: new Date().toISOString().split('T')[0] };
+                    renderPartiesContainer();
+                    document.getElementById('effective-date').value = state.formData.effectiveDate;
+                    document.getElementById('jurisdiction').value = state.formData.jurisdiction;
+                }
+                dom.finishDraftBtn.addEventListener('click', () => { 
+                    state.formData.parties = Array.from(dom.partiesContainer.children).map((div, i) => ({
+                        name: div.querySelector(`[data-field='name']`).value,
+                        role: div.querySelector(`[data-field='role']`).value,
+                        address: div.querySelector(`[data-field='address']`).value,
+                    }));
+                    state.formData.effectiveDate = document.getElementById('effective-date').value;
+                    state.formData.jurisdiction = document.getElementById('jurisdiction').value;
+
+                    const newDraftId = `draft_${new Date().getTime()}`; 
+                    state.currentDraftId = newDraftId; 
+                    const newDraft = { id: newDraftId, title: `${templatesDB[state.currentTemplateKey].title} - ${(state.formData.parties[1] && state.formData.parties[1].name) || 'New Draft'}`, templateKey: state.currentTemplateKey, formData: { ...state.formData }, activeClauseIds: [...state.activeClauseIds], lastSaved: new Date().toISOString() }; 
+                    state.drafts.unshift(newDraft); 
+                    saveState(); 
+                    renderEditor(); 
+                    renderClauseLibrary(); 
+                    showPage('editor-page'); 
+                });
+
+                function renderPartiesContainer() {
+                    dom.partiesContainer.innerHTML = state.formData.parties.map((party, index) => {
+                        const removeButton = index > 1 ? `<button type="button" class="remove-party-btn absolute top-3 right-3 text-danger hover:text-red-700" data-index="${index}"><i data-feather="x-circle" class="h-5 w-5"></i></button>` : '';
+                        return `
+                        <div class="border rounded-lg p-3 relative" data-party-index="${index}">
+                            <div class="flex justify-between items-center mb-2">
+                               <h4 class="font-bold text-primary">Party ${String.fromCharCode(65 + index)}</h4>
+                               ${removeButton}
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-semibold mb-1 text-sm">Name</label>
+                                    <input type="text" data-field="name" class="w-full border rounded-lg p-2 text-sm" value="${party.name || ''}">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-1 text-sm">Role</label>
+                                    <input type="text" data-field="role" class="w-full border rounded-lg p-2 text-sm" value="${party.role || ''}">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mt-2 mb-1 text-sm">Address</label>
+                                <textarea data-field="address" class="w-full border rounded-lg p-2 text-sm" rows="2">${party.address || ''}</textarea>
+                            </div>
+                        </div>`;
+                    }).join('');
+                    feather.replace();
+                }
+
+                dom.addPartyBtn.addEventListener('click', () => {
+                    state.formData.parties.push({ name: '', role: '', address: '' });
+                    renderPartiesContainer();
+                });
+
+                function generateClauseHTML(clauseId, savedContent = null) { const clause = clausesDB[clauseId]; if (!clause) return ''; const renderedText = savedContent || clause.text(state.formData); return `<div class="clause-block" data-clause-id="${clauseId}"><div class="clause-header"><h4 class="font-bold text-primary">${clause.title}</h4><div class="flex items-center space-x-2"><i data-feather="move" class="drag-handle text-gray-400"></i><button class="ai-assist-btn text-ai-purple hover:text-purple-700 animate-pulse-glow" title="AI Assist"><i data-feather="cpu" class="h-5 w-5"></i></button><button class="remove-clause-btn text-danger hover:text-red-700" title="Remove Clause"><i data-feather="x-circle" class="h-5 w-5"></i></button></div></div><div class="clause-content prose" contenteditable="true">${renderedText}</div></div>`; }
+                function generateCustomClauseHTML() { return `<div class="clause-block" data-clause-id="custom_${new Date().getTime()}"><div class="clause-header"><h4 class="font-bold text-primary" contenteditable="true">Enter Custom Title Here</h4><div class="flex items-center space-x-2"><i data-feather="move" class="drag-handle text-gray-400"></i><button class="remove-clause-btn text-danger hover:text-red-700" title="Remove Clause"><i data-feather="x-circle" class="h-5 w-5"></i></button></div></div><div class="clause-content prose" contenteditable="true"><p>Enter your custom clause text here...</p></div></div>`; }
+                function generateInserterHTML() { return `<div class="clause-inserter"><button class="clause-inserter-btn flex items-center justify-center text-sm font-semibold"><i data-feather="plus" class="h-4 w-4 mr-1"></i> Insert Custom Clause Here</button></div>`; }
+                function renderEditor(clausesContent = {}) { 
+                    const draft = state.drafts.find(d => d.id === state.currentDraftId); 
+                    if (!draft) { goBackToDashboard(); return; } 
+                    dom.editorFilename.textContent = `Editing: ${draft.title}`; 
+                    let editorHtml = generateInserterHTML(); 
+                    editorHtml += (draft.activeClauseIds || []).map(id => { const content = clausesContent ? clausesContent[id] : null; if (id.startsWith('custom_')) { return (content ? `<div class="clause-block" data-clause-id="${id}">${content}</div>` : generateCustomClauseHTML()) + generateInserterHTML(); } return generateClauseHTML(id, content) + generateInserterHTML(); }).join(''); 
+                    dom.contractEditorContainer.innerHTML = editorHtml; 
+                    
+                    if (state.sortableInstance) {
+                        state.sortableInstance.destroy();
+                    }
+                    state.sortableInstance = new Sortable(dom.contractEditorContainer, {
+                        animation: 150,
+                        handle: '.drag-handle',
+                        filter: '.clause-inserter, [contenteditable=\"true\"]',
+                        preventOnFilter: false,
+                        onEnd: (evt) => {
+                            // The library visually moves the item, we just need to save the new order
+                        },
+                    });
+
+                    feather.replace(); 
+                }
+                function renderClauseLibrary(searchTerm = '') { const categories = {}; Object.entries(clausesDB).forEach(([key, clause]) => { const term = searchTerm.toLowerCase(); if (!searchTerm || clause.title.toLowerCase().includes(term) || clause.category.toLowerCase().includes(term)) { clause.key = key; if (!categories[clause.category]) categories[clause.category] = []; categories[clause.category].push(clause); } }); dom.clauseLibraryContainer.innerHTML = Object.keys(categories).sort().map(cat => `<div><h4 class="text-lg font-semibold text-primary mb-2">${cat}</h4><div class="space-y-2">${categories[cat].map(c => `<div class="flex justify-between items-center bg-gray-100 p-2 rounded"><span class="text-sm">${c.title}</span><button class="add-clause-btn bg-accent text-white rounded-full p-1 hover:bg-teal-500" data-clause-id="${c.key}" title="Add"><i data-feather="plus" class="h-4 w-4"></i></button></div>`).join('')}</div></div>`).join('') || `<p class="text-gray-500">No clauses found.</p>`; feather.replace(); }
+                dom.clauseSearch.addEventListener('input', (e) => renderClauseLibrary(e.target.value));
+                dom.contractEditorContainer.addEventListener('click', (e) => { const removeBtn = e.target.closest('.remove-clause-btn'); if (removeBtn) { const clauseBlock = removeBtn.closest('.clause-block'); const inserter = clauseBlock.nextElementSibling; if (inserter && inserter.classList.contains('clause-inserter')) { inserter.remove(); } clauseBlock.remove(); } });
+                dom.clauseLibraryContainer.addEventListener('click', (e) => { const addBtn = e.target.closest('.add-clause-btn'); if (addBtn) { const clauseId = addBtn.dataset.clauseId; const lastInserter = dom.contractEditorContainer.querySelector('.clause-inserter:last-of-type'); if (lastInserter) { const newClauseHTML = generateClauseHTML(clauseId) + generateInserterHTML(); lastInserter.insertAdjacentHTML('beforebegin', newClauseHTML); feather.replace(); } } });
+                dom.copyBtn.addEventListener('click', () => { let plainText = ''; dom.contractEditorContainer.querySelectorAll('.clause-block').forEach(b => { plainText += `${b.querySelector('h4').innerText}\n\n${b.querySelector('.clause-content').innerText}\n\n---\n\n`; }); navigator.clipboard.writeText(plainText).then(() => { dom.copySuccessMsg.classList.remove('hidden'); setTimeout(() => dom.copySuccessMsg.classList.add('hidden'), 2000); }); });
+
+                function init() { loadState(); resetWizard(); renderTemplateSelector(); updateUIWithProfileData(); goBackToDashboard(); }
+                init();
+            });
+        } catch (error) {
+            document.body.innerHTML = `<div style="padding: 2rem; text-align: center; font-family: sans-serif;">
+                <h1 style="color: red; font-size: 2rem;">An Application Error Occurred</h1>
+                <p>Sorry, Lexica Draft could not start correctly. Please try clearing your browser cache or report this issue.</p>
+                <pre style="margin-top: 1rem; padding: 1rem; background-color: #f0f0f0; border-radius: 8px; text-align: left; white-space: pre-wrap;">${error.stack}</pre>
+            </div>`;
+        }
+    </script>
+</body>
+</html>
+
